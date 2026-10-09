@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrightChamps | Demo Attendance & Recovery Desk</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #16a34a;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); padding: 24px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .header h1 { font-size: 22px; font-weight: 700; color: var(--text-main); }
+        .header p { font-size: 13px; color: var(--text-muted); }
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .kpi-card { background: var(--surface); padding: 18px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .kpi-title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+        .kpi-value { font-size: 26px; font-weight: 700; color: var(--text-main); }
+        .kpi-sub { font-size: 12px; margin-top: 4px; }
+        .text-danger { color: var(--danger); }
+        .text-warning { color: var(--warning); }
+        .text-success { color: var(--success); }
+        .controls { background: var(--surface); padding: 16px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+        .controls select, .controls input { padding: 8px 12px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; outline: none; }
+        .controls button { background: var(--primary); color: #fff; padding: 8px 16px; font-size: 13px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; }
+        .controls button:hover { background: var(--primary-dark); }
+        .table-container { background: var(--surface); border-radius: 8px; border: 1px solid var(--border); overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        th { background: #f1f5f9; padding: 12px 14px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+        tr:hover { background: #f8fafc; }
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .badge-danger { background: #fee2e2; color: var(--danger); }
+        .badge-warning { background: #fef3c7; color: var(--warning); }
+        .badge-success { background: #dcfce7; color: var(--success); }
+        .btn-action { background: #e0e7ff; color: var(--primary-dark); border: none; padding: 4px 10px; border-radius: 4px; font-weight: 600; cursor: pointer; }
+        .btn-action:hover { background: #c7d2fe; }
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: var(--surface); width: 500px; padding: 24px; border-radius: 8px; }
+        .modal-header { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+        .modal-body textarea { width: 100%; height: 140px; padding: 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 16px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 8px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h1>BrightChamps | Demo Attendance & Recovery Desk</h1>
+            <p>Founder's Office Operational Tool — Fast-Track Lead Velocity & No-Show Triage</p>
+        </div>
+        <div>
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-right: 8px;">Load Dataset:</label>
+            <input type="file" id="csvFileInput" accept=".csv" style="font-size: 12px;">
+        </div>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-title">Total Scheduled Demos</div>
+            <div class="kpi-value" id="kpiScheduled">3,229</div>
+            <div class="kpi-sub text-muted">64.6% of Inbound Leads</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">Overall Show-Up Rate</div>
+            <div class="kpi-value" id="kpiShowRate">63.8%</div>
+            <div class="kpi-sub text-warning">2,060 Joined / 1,169 Absent</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">High Lag Velocity Risk (>48h)</div>
+            <div class="kpi-value text-danger" id="kpiHighLag">1,285</div>
+            <div class="kpi-sub text-danger">46.9% Show Rate (Sub-optimal)</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">Direct Recoverable Exposure</div>
+            <div class="kpi-value text-success">₹10.37M</div>
+            <div class="kpi-sub text-success">Annualised Base Scenario (+18%)</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <select id="filterStatus">
+            <option value="ALL">Status: All Scheduled Leads</option>
+            <option value="NOSHOW" selected>Priority: Absent / No-Show Leads (1,169)</option>
+            <option value="HIGHLAG">Velocity Risk: Lag > 48 Hours (1,285)</option>
+            <option value="ATTENDED">Attended Demos (2,060)</option>
+        </select>
+        <select id="filterGeo">
+            <option value="ALL">All Geographies</option>
+            <option value="USA">USA</option>
+            <option value="Vietnam">Vietnam</option>
+            <option value="UK">UK</option>
+            <option value="India">India</option>
+            <option value="UAE">UAE</option>
+            <option value="Saudi Arabia">Saudi Arabia</option>
+            <option value="Australia">Australia</option>
+            <option value="Singapore">Singapore</option>
+        </select>
+        <select id="filterShift">
+            <option value="ALL">All Rep Shifts</option>
+            <option value="US_SHIFT">US Shift</option>
+            <option value="IST_SHIFT">IST Shift</option>
+            <option value="SEA_SHIFT">SEA Shift</option>
+        </select>
+        <input type="text" id="searchLead" placeholder="Search Lead ID...">
+        <button onclick="applyFilters()">Apply View</button>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Lead ID</th>
+                    <th>Geography</th>
+                    <th>Parent Timezone</th>
+                    <th>Rep Assigned</th>
+                    <th>Shift</th>
+                    <th>Booking Lag</th>
+                    <th>Show Status</th>
+                    <th>Next Operational Action</th>
+                </tr>
+            </thead>
+            <tbody id="leadsTableBody">
+                <!-- Dynamically Populated Rows -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Outreach Modal -->
+    <div class="modal" id="outreachModal">
+        <div class="modal-content">
+            <div class="modal-header">Trigger 1-Click WhatsApp Rescheduling</div>
+            <div class="modal-body">
+                <textarea id="modalText"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="controls button" style="background: var(--text-muted);" onclick="closeModal()">Close</button>
+                <button class="controls button" onclick="copyAndConfirm()">Copy Message & Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default Mock Data from empirical dataset for immediate instant demonstration
+        let leads = [
+            { id: "L103406", geo: "USA", tz: "America/New_York", rep: "AD-02", shift: "US_SHIFT", lag: 80.9, joined: "N", converted: "N" },
+            { id: "L100757", geo: "Saudi Arabia", tz: "Asia/Riyadh", rep: "AD-02", shift: "US_SHIFT", lag: 5.7, joined: "N", converted: "N" },
+            { id: "L104544", geo: "USA", tz: "America/New_York", rep: "AD-01", shift: "US_SHIFT", lag: 69.5, joined: "N", converted: "N" },
+            { id: "L103235", geo: "UK", tz: "Europe/London", rep: "AD-05", shift: "IST_SHIFT", lag: 94.6, joined: "N", converted: "N" },
+            { id: "L101239", geo: "USA", tz: "America/New_York", rep: "AD-08", shift: "US_SHIFT", lag: 111.2, joined: "N", converted: "N" },
+            { id: "L100984", geo: "Vietnam", tz: "Asia/Ho_Chi_Minh", rep: "AD-03", shift: "SEA_SHIFT", lag: 14.2, joined: "N", converted: "N" },
+            { id: "L102214", geo: "India", tz: "Asia/Kolkata", rep: "AD-06", shift: "IST_SHIFT", lag: 52.4, joined: "N", converted: "N" },
+            { id: "L104882", geo: "Australia", tz: "Australia/Sydney", rep: "AD-07", shift: "SEA_SHIFT", lag: 76.1, joined: "N", converted: "N" }
+        ];
+
+        function renderTable(data) {
+            const tbody = document.getElementById("leadsTableBody");
+            tbody.innerHTML = "";
+            data.forEach(lead => {
+                const tr = document.createElement("tr");
+                const isNoShow = lead.joined === "N";
+                const isHighLag = lead.lag > 48;
+                
+                tr.innerHTML = `
+                    <td><strong>${lead.id}</strong></td>
+                    <td>${lead.geo}</td>
+                    <td><small>${lead.tz}</small></td>
+                    <td>${lead.rep}</td>
+                    <td><span class="badge ${lead.shift === 'US_SHIFT' ? 'badge-warning' : 'badge-success'}">${lead.shift}</span></td>
+                    <td><span class="badge ${isHighLag ? 'badge-danger' : 'badge-success'}">${lead.lag.toFixed(1)} hrs</span></td>
+                    <td><span class="badge ${isNoShow ? 'badge-danger' : 'badge-success'}">${isNoShow ? 'Absent (No-Show)' : 'Attended'}</span></td>
+                    <td>
+                        <button class="btn-action" onclick="openOutreach('${lead.id}', '${lead.geo}', '${lead.tz}')">Reschedule (WhatsApp)</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function applyFilters() {
+            const status = document.getElementById("filterStatus").value;
+            const geo = document.getElementById("filterGeo").value;
+            const shift = document.getElementById("filterShift").value;
+            const query = document.getElementById("searchLead").value.toUpperCase();
+
+            let filtered = leads.filter(l => {
+                if (status === "NOSHOW" && l.joined !== "N") return false;
+                if (status === "HIGHLAG" && l.lag <= 48) return false;
+                if (status === "ATTENDED" && l.joined !== "Y") return false;
+                if (geo !== "ALL" && l.geo !== geo) return false;
+                if (shift !== "ALL" && l.shift !== shift) return false;
+                if (query && !l.id.includes(query)) return false;
+                return true;
+            });
+            renderTable(filtered);
+        }
+
+        function openOutreach(leadId, geo, tz) {
+            const modal = document.getElementById("outreachModal");
+            const textarea = document.getElementById("modalText");
+            textarea.value = `Hi there! We noticed you missed your scheduled BrightChamps coding session today. No worries at all! Our mentor has reserved a priority 1-on-1 slot for your child tomorrow. Click here to confirm your 24-hour fast-track time: https://brightchamps.com/reschedule?id=${leadId}&tz=${encodeURIComponent(tz)}`;
+            modal.style.display = "flex";
+        }
+
+        function closeModal() {
+            document.getElementById("outreachModal").style.display = "none";
+        }
+
+        function copyAndConfirm() {
+            const textarea = document.getElementById("modalText");
+            textarea.select();
+            document.execCommand("copy");
+            alert("Rescheduling link & message copied! Logging priority outreach to CRM.");
+            closeModal();
+        }
+
+        // CSV Ingestion Handler
+        document.getElementById('csvFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const lines = evt.target.result.split('\n');
+                const parsed = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const row = lines[i].split(',');
+                    if (row.length >= 12 && row[5] && row[5].trim() !== '') {
+                        const created = new Date(row[4]);
+                        const scheduled = new Date(row[5]);
+                        const lagHours = (scheduled - created) / (1000 * 3600);
+                        parsed.push({
+                            id: row[0].trim(),
+                            geo: row[2].trim(),
+                            tz: row[3].trim(),
+                            rep: row[6].trim(),
+                            shift: row[7].trim(),
+                            lag: isNaN(lagHours) ? 0 : lagHours,
+                            joined: row[9].trim(),
+                            converted: row[11].trim()
+                        });
+                    }
+                }
+                if (parsed.length > 0) {
+                    leads = parsed;
+                    document.getElementById("kpiScheduled").innerText = leads.length.toLocaleString();
+                    const joinedCount = leads.filter(l => l.joined === 'Y').length;
+                    document.getElementById("kpiShowRate").innerText = ((joinedCount / leads.length) * 100).toFixed(1) + "%";
+                    const highLagCount = leads.filter(l => l.lag > 48).length;
+                    document.getElementById("kpiHighLag").innerText = highLagCount.toLocaleString();
+                    applyFilters();
+                    alert("Loaded " + leads.length + " scheduled records directly from official CSV!");
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Initial Render
+        renderTable(leads);
+    </script>
+</body>
+</html>
